@@ -1,0 +1,306 @@
+{% extends "core/base.html" %}
+{% block title %}Dashboard{% endblock %}
+
+{% block extra_head %}
+  <link href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/index.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+
+  <style>
+    .fc {
+      --fc-border-color: rgb(51, 65, 85);
+      --fc-bg-color: rgb(15, 23, 42);
+      --fc-page-bg-color: rgb(15, 23, 42);
+      --fc-neutral-bg-color: rgb(30, 41, 59);
+      --fc-neutral-text-color: rgb(148, 163, 184);
+      --fc-button-bg-color: rgb(30, 41, 59);
+      --fc-button-border-color: rgb(51, 65, 85);
+      --fc-button-text-color: white;
+      --fc-button-hover-bg-color: rgb(51, 65, 85);
+      --fc-button-active-bg-color: rgb(59, 130, 246);
+      --fc-today-bg-color: rgba(59, 130, 246, 0.15);
+      --fc-event-bg-color: rgb(59, 130, 246);
+      --fc-event-border-color: transparent;
+    }
+
+    .fc .fc-scrollgrid { border-radius: 12px; overflow: hidden; }
+
+    .fc .fc-col-header-cell-cushion{
+      display: block;
+      text-align: center;
+      font-size: 0.78rem;
+      line-height: 1.1rem;
+      padding: 8px 0;
+      white-space: nowrap;
+    }
+
+    .fc-timegrid-slot { height: 38px; }
+    .fc-timegrid-axis-cushion { color: rgb(148, 163, 184); }
+
+    .fc-event {
+      padding: 4px 6px;
+      border-radius: 8px;
+      box-shadow: 0 0 8px rgba(59, 130, 246, 0.5);
+      font-size: 0.85rem;
+      font-weight: 500;
+    }
+
+    .fc-event:hover { filter: brightness(1.2); transform: scale(1.02); transition: 0.15s ease; }
+    .fc .fc-day-today { background-color: rgba(59, 130, 246, 0.1) !important; }
+
+    .fc-toolbar-title {
+      font-size: 1.25rem;
+      font-weight: 600;
+      color: white;
+    }
+
+    .fc-button { border-radius: 6px !important; padding: 6px 12px !important; }
+
+    /* ======= MOBILE/TABLET ONLY (bez zmiany desktop) ======= */
+    @media (max-width: 1024px) { .dash-card { padding: 16px !important; } }
+
+    @media (max-width: 640px) {
+      /* mapka niższa na tel */
+      #map { height: 320px !important; }
+    }
+
+    @media (min-width: 641px) and (max-width: 1023px) { #map { height: 420px !important; } }
+  </style>
+{% endblock %}
+
+{% block content %}
+
+<h1 class="text-3xl font-bold mb-6">Dashboard</h1>
+
+<div class="lg:hidden mb-4">
+  <div class="bg-slate-950 border border-slate-800 rounded-xl p-4 dash-card">
+    <div class="flex items-center justify-between gap-3">
+      <div>
+        <p class="text-slate-400 text-xs">Szybki podgląd</p>
+        <p class="text-lg font-semibold">{% now "l, d.m.Y" %}</p>
+      </div>
+
+      <a href="{% url 'calendar_view' %}"
+         class="px-3 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-sm whitespace-nowrap">
+        Kalendarz →
+      </a>
+    </div>
+  </div>
+</div>
+
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+  <div class="lg:col-span-2 space-y-6">
+
+    <div class="hidden lg:block bg-slate-950 border border-slate-800 p-6 rounded-xl dash-card">
+      <h2 class="text-xl font-semibold mb-3">Kalendarz tygodniowy</h2>
+      <div id="calendar"></div>
+    </div>
+
+    <div class="bg-slate-950 border border-slate-800 p-6 rounded-xl dash-card">
+      <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-3">
+        <h2 class="text-xl font-semibold">Zlecenia</h2>
+
+        <div class="flex gap-2">
+          <button id="btnToday"
+                  class="px-3 py-1.5 rounded bg-blue-600 text-white text-sm">
+            Dziś
+          </button>
+
+          <button id="btnTomorrow"
+                  class="px-3 py-1.5 rounded bg-slate-800 text-slate-300 text-sm hover:bg-slate-700">
+            Jutro
+          </button>
+        </div>
+      </div>
+
+      <ul id="ordersToday" class="space-y-2">
+        {% for order in orders_today %}
+          <li class="flex justify-between items-center gap-3 p-3 bg-slate-900 rounded hover:bg-slate-800 transition"
+              onmouseover="highlightMarker({{ order.id }})"
+              onmouseout="resetMarker({{ order.id }})">
+
+            <div class="min-w-0">
+              <p class="font-semibold text-lg truncate">
+                {{ order.client.first_name }} {{ order.client.last_name }}
+              </p>
+              <p class="text-slate-400 text-sm">
+                {{ order.get_order_type_display }} —
+                {% if order.time %}{{ order.time|time:"H:i" }}{% else %}—{% endif %}
+              </p>
+            </div>
+
+            <a href="{% url 'order_detail' order.id %}"
+               class="text-blue-400 hover:text-blue-300 whitespace-nowrap">
+              Szczegóły →
+            </a>
+          </li>
+        {% empty %}
+          <li class="text-slate-400">Brak zleceń na dziś.</li>
+        {% endfor %}
+      </ul>
+
+      <ul id="ordersTomorrow" class="space-y-2 hidden">
+        {% for order in orders_tomorrow %}
+          <li class="flex justify-between items-center gap-3 p-3 bg-slate-900 rounded hover:bg-slate-800 transition"
+              onmouseover="highlightMarker({{ order.id }})"
+              onmouseout="resetMarker({{ order.id }})">
+
+            <div class="min-w-0">
+              <p class="font-semibold text-lg truncate">
+                {{ order.client.first_name }} {{ order.client.last_name }}
+              </p>
+              <p class="text-slate-400 text-sm">
+                {{ order.get_order_type_display }} —
+                {% if order.time %}{{ order.time|time:"H:i" }}{% else %}—{% endif %}
+              </p>
+            </div>
+
+            <a href="{% url 'order_detail' order.id %}"
+               class="text-blue-400 hover:text-blue-300 whitespace-nowrap">
+              Szczegóły →
+            </a>
+          </li>
+        {% empty %}
+          <li class="text-slate-400">Brak zleceń na jutro.</li>
+        {% endfor %}
+      </ul>
+
+    </div>
+  </div>
+
+  <div class="bg-slate-950 border border-slate-800 p-6 rounded-xl dash-card">
+    <h2 class="text-xl font-semibold mb-3">Mapa – zlecenia</h2>
+    <p id="mapCaption" class="text-slate-400 text-sm mb-3">Podświetlanie: <span class="text-slate-200">Dziś</span></p>
+    <div id="map" class="w-full h-[500px] rounded-lg"></div>
+  </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+  <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/index.global.min.js"></script>
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+  <script>
+    document.addEventListener("DOMContentLoaded", function () {
+
+      const btnToday = document.getElementById("btnToday");
+      const btnTomorrow = document.getElementById("btnTomorrow");
+      const todayList = document.getElementById("ordersToday");
+      const tomorrowList = document.getElementById("ordersTomorrow");
+      const mapCaption = document.getElementById("mapCaption");
+
+      function setActive(which) {
+        const isToday = which === "today";
+
+        todayList.classList.toggle("hidden", !isToday);
+        tomorrowList.classList.toggle("hidden", isToday);
+
+        btnToday.classList.toggle("bg-blue-600", isToday);
+        btnToday.classList.toggle("text-white", isToday);
+        btnToday.classList.toggle("bg-slate-800", !isToday);
+        btnToday.classList.toggle("text-slate-300", !isToday);
+
+        btnTomorrow.classList.toggle("bg-blue-600", !isToday);
+        btnTomorrow.classList.toggle("text-white", !isToday);
+        btnTomorrow.classList.toggle("bg-slate-800", isToday);
+        btnTomorrow.classList.toggle("text-slate-300", isToday);
+
+        if (mapCaption) {
+          mapCaption.innerHTML = `Podświetlanie: <span class="text-slate-200">${isToday ? "Dziś" : "Jutro"}</span>`;
+        }
+
+        // podmiana markerów na mapie
+        showMarkers(isToday ? "today" : "tomorrow");
+      }
+
+      btnToday?.addEventListener("click", () => setActive("today"));
+      btnTomorrow?.addEventListener("click", () => setActive("tomorrow"));
+
+      const calendarEl = document.getElementById('calendar');
+      if (calendarEl && window.matchMedia("(min-width: 1024px)").matches) {
+        const calendar = new FullCalendar.Calendar(calendarEl, {
+          initialView: 'timeGridWeek',
+          height: 380,
+          events: {{ calendar_events|safe }},
+          nowIndicator: true,
+          slotMinTime: "06:00:00",
+          slotMaxTime: "20:00:00",
+          locale: "pl",
+          firstDay: 1,
+          allDaySlot: false,
+          dayHeaderFormat: { weekday: "short", day: "2-digit", month: "2-digit" },
+          eventTimeFormat: { hour: "2-digit", minute: "2-digit", hour12: false },
+        });
+        calendar.render();
+      }
+
+      const map = L.map('map').setView([52.0, 19.0], 6);
+
+      L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        maxZoom: 19
+      }).addTo(map);
+
+      const markersToday = {};
+      {% for m in markers %}
+        (function(){
+          const marker = L.marker([{{ m.lat }}, {{ m.lng }}]).bindPopup("{{ m.client }}");
+          markersToday[{{ m.id }}] = marker;
+        })();
+      {% endfor %}
+
+      const markersTomorrow = {};
+      {% for m in markers_tomorrow %}
+        (function(){
+          const marker = L.marker([{{ m.lat }}, {{ m.lng }}]).bindPopup("{{ m.client }}");
+          markersTomorrow[{{ m.id }}] = marker;
+        })();
+      {% endfor %}
+
+      let currentLayerGroup = null;
+
+      function showMarkers(which) {
+        const src = (which === "today") ? markersToday : markersTomorrow;
+
+        if (currentLayerGroup) {
+          currentLayerGroup.removeFrom(map);
+        }
+
+        const layerList = Object.values(src);
+        currentLayerGroup = L.featureGroup(layerList).addTo(map);
+
+        if (layerList.length) {
+          map.fitBounds(currentLayerGroup.getBounds().pad(0.25));
+        }
+
+        setTimeout(() => map.invalidateSize(), 150);
+      }
+
+      showMarkers("today");
+
+      window.addEventListener("resize", () => map.invalidateSize());
+
+      window.highlightMarker = function(id) {
+        const activeIsToday = !todayList.classList.contains("hidden");
+        const active = activeIsToday ? markersToday : markersTomorrow;
+        const m = active[id];
+        if (m && m._icon) {
+          m._icon.style.filter = "drop-shadow(0 0 10px yellow)";
+          m.addTo(map);
+          m.openPopup();
+        }
+      };
+
+      window.resetMarker = function(id) {
+        const activeIsToday = !todayList.classList.contains("hidden");
+        const active = activeIsToday ? markersToday : markersTomorrow;
+        const m = active[id];
+        if (m && m._icon) {
+          m._icon.style.filter = "";
+          m.closePopup();
+        }
+      };
+
+      setActive("today");
+    });
+  </script>
+{% endblock %}

@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>{% block title %}Panel{% endblock %}</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <style>
+        .hover-glow:hover { filter: drop-shadow(0 0 6px rgba(255,255,255,0.5)); }
+        .active-link { background-color: rgb(30, 41, 59); font-weight: bold; }
+    </style>
+
+    {% block extra_head %}{% endblock %}
+</head>
+
+<body class="bg-slate-900 text-slate-100">
+
+<div class="flex min-h-screen">
+
+    <aside class="w-64 bg-slate-950 border-r border-slate-800 p-6 hidden lg:block sticky top-0 h-screen relative">
+        <h1 class="text-2xl font-bold mb-10 tracking-wide">
+            Company<span class="text-blue-400">Manager</span>
+        </h1>
+
+        <nav class="space-y-2 pb-28">
+            <a href="{% url 'dashboard' %}"
+               class="block px-3 py-2 rounded hover:bg-slate-800 hover:text-blue-300
+               {% if request.resolver_match.url_name == 'dashboard' %}active-link{% endif %}">
+                Dashboard
+            </a>
+
+            <a href="{% url 'orders_list' %}"
+               class="block px-3 py-2 rounded hover:bg-slate-800 hover:text-blue-300
+               {% if request.resolver_match.url_name == 'orders_list' %}active-link{% endif %}">
+                Zlecenia
+            </a>
+
+            <a href="{% url 'clients_list' %}"
+               class="block px-3 py-2 rounded hover:bg-slate-800 hover:text-blue-300
+               {% if request.resolver_match.url_name == 'clients_list' %}active-link{% endif %}">
+                Klienci
+            </a>
+
+            <a href="{% url 'calendar_view' %}"
+               class="block px-3 py-2 rounded hover:bg-slate-800 hover:text-blue-300
+               {% if request.resolver_match.url_name == 'calendar_view' %}active-link{% endif %}">
+                Kalendarz
+            </a>
+        </nav>
+
+        <div class="absolute bottom-6 left-6 right-6">
+            <form method="post" action="{% url 'logout' %}">
+                {% csrf_token %}
+                <button type="submit"
+                        class="w-full text-left px-3 py-2 rounded hover:bg-slate-800 hover:text-red-300 text-slate-300">
+                    Wyloguj
+                </button>
+            </form>
+
+            <div class="mt-4 text-slate-500 text-sm text-center">
+                © {% now "Y" %} CompanyManager
+            </div>
+        </div>
+    </aside>
+
+    <button
+        type="button"
+        onclick="toggleSidebar()"
+        class="lg:hidden fixed top-4 left-4 z-[60] w-11 h-11 rounded-xl bg-slate-950/90 border border-slate-800
+               flex items-center justify-center text-slate-200 shadow-lg active:scale-95 transition"
+        aria-label="Otwórz menu">
+        ☰
+    </button>
+
+    <aside id="mobileSidebar"
+           class="fixed top-0 left-0 h-full w-72 max-w-[85vw] bg-slate-950 border-r border-slate-800 p-5
+                  -translate-x-full transition-transform duration-300 lg:hidden z-50 flex flex-col">
+        <div class="flex items-center justify-between">
+            <h1 class="text-lg font-bold tracking-wide">
+                Company<span class="text-blue-400">Manager</span>
+            </h1>
+
+            <button
+                type="button"
+                onclick="toggleSidebar()"
+                class="w-10 h-10 rounded-lg hover:bg-slate-800 text-slate-200"
+                aria-label="Zamknij menu">
+                ✕
+            </button>
+        </div>
+
+        <nav class="space-y-2 mt-6">
+            <a href="{% url 'dashboard' %}" class="block px-3 py-2 rounded hover:bg-slate-800 hover:text-blue-300">
+                Dashboard
+            </a>
+
+            <a href="{% url 'orders_list' %}" class="block px-3 py-2 rounded hover:bg-slate-800 hover:text-blue-300">
+                Zlecenia
+            </a>
+
+            <a href="{% url 'clients_list' %}" class="block px-3 py-2 rounded hover:bg-slate-800 hover:text-blue-300">
+                Klienci
+            </a>
+
+            <a href="{% url 'calendar_view' %}" class="block px-3 py-2 rounded hover:bg-slate-800 hover:text-blue-300">
+                Kalendarz
+            </a>
+        </nav>
+
+        <div class="mt-auto pt-6 border-t border-slate-800">
+            <form method="post" action="{% url 'logout' %}">
+                {% csrf_token %}
+                <button type="submit"
+                        class="w-full text-left px-3 py-2 rounded hover:bg-slate-800 hover:text-red-300 text-slate-300">
+                    Wyloguj
+                </button>
+            </form>
+
+            <div class="mt-4 text-slate-500 text-xs text-center">
+                © {% now "Y" %} CompanyManager
+            </div>
+        </div>
+    </aside>
+
+    <div id="sidebarOverlay"
+         class="fixed inset-0 bg-black/50 hidden lg:hidden z-40"
+         onclick="toggleSidebar()"></div>
+
+    <main class="flex-1 pt-20 p-4 sm:pt-6 sm:p-6 lg:p-8">
+        {% block content %}{% endblock %}
+    </main>
+
+</div>
+
+<script>
+function toggleSidebar() {
+    const sidebar = document.getElementById("mobileSidebar");
+    const overlay = document.getElementById("sidebarOverlay");
+
+    const isOpen = !sidebar.classList.contains("-translate-x-full");
+
+    if (isOpen) {
+        sidebar.classList.add("-translate-x-full");
+        overlay.classList.add("hidden");
+        document.body.classList.remove("overflow-hidden");
+    } else {
+        sidebar.classList.remove("-translate-x-full");
+        overlay.classList.remove("hidden");
+        document.body.classList.add("overflow-hidden");
+    }
+}
+</script>
+
+{% block extra_js %}{% endblock %}
+
+</body>
+</html>

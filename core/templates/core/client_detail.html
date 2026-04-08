@@ -1,0 +1,65 @@
+{% extends "core/base.html" %}
+{% block title %}Klient – {{ client.first_name }} {{ client.last_name }}{% endblock %}
+
+{% block content %}
+<h1 class="text-3xl font-bold mb-6">
+    Klient: {{ client.first_name }} {{ client.last_name }}
+</h1>
+
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+
+    <div class="bg-slate-950 border border-slate-800 p-6 rounded-xl">
+        <h2 class="text-xl font-semibold mb-4">Informacje</h2>
+
+        <p><span class="text-slate-400">Imię:</span> {{ client.first_name }}</p>
+        <p><span class="text-slate-400">Nazwisko:</span> {{ client.last_name }}</p>
+        <p><span class="text-slate-400">Telefon:</span> {{ client.phone|default:"—" }}</p>
+        <p><span class="text-slate-400">Adres:</span> {{ client.address|default:"—" }}</p>
+        <p><span class="text-slate-400">Miasto:</span> {{ client.city|default:"—" }}</p>
+
+        <p class="mt-3"><span class="text-slate-400">Notatki:</span><br>
+            {{ client.notes|default:"Brak notatek." }}
+        </p>
+
+        <div class="mt-6 flex gap-3">
+            <a href="{% url 'client_edit' client.pk %}"
+               class="px-4 py-2 bg-blue-600 hover:bg-blue-500 rounded text-white">Edytuj</a>
+
+            <form method="post" action="{% url 'client_delete' client.pk %}" class="inline">
+                {% csrf_token %}
+                <button type="submit"
+                        class="px-4 py-2 bg-red-600 hover:bg-red-500 rounded text-white"
+                        onclick="return confirm('Na pewno usunąć klienta? Usuniesz też wszystkie jego zlecenia.');">
+                    Usuń
+                </button>
+            </form>
+        </div>
+    </div>
+
+
+    <div class="lg:col-span-2 bg-slate-950 border border-slate-800 p-6 rounded-xl">
+        <h2 class="text-xl font-semibold mb-4">Historia zleceń</h2>
+
+        {% if orders %}
+            <ul class="space-y-3">
+                {% for order in orders %}
+                <li class="p-4 bg-slate-900 rounded-xl border border-slate-800 hover:bg-slate-800 transition">
+                    <p class="font-semibold text-lg">{{ order.get_order_type_display }}</p>
+                    <p class="text-slate-400 text-sm">
+                        {{ order.date }} • {{ order.time|default:"—" }}
+                    </p>
+
+                    <a href="{% url 'order_detail' order.pk %}"
+                       class="text-blue-400 hover:text-blue-300 text-sm">
+                        Szczegóły →
+                    </a>
+                </li>
+                {% endfor %}
+            </ul>
+        {% else %}
+            <p class="text-slate-400">Brak zleceń przypisanych do tego klienta.</p>
+        {% endif %}
+    </div>
+</div>
+
+{% endblock %}

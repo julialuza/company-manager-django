@@ -1,0 +1,41 @@
+{% extends "core/base.html" %}
+{% block title %}Zlecenie #{{ order.id }}{% endblock %}
+
+{% block content %}
+
+<h1 class="text-2xl font-bold mb-4">
+    Zlecenie dla {{ order.client.first_name }} {{ order.client.last_name }}
+</h1>
+
+<div class="grid md:grid-cols-2 gap-6">
+
+    <section class="bg-slate-950 border border-slate-800 rounded-xl p-4">
+        <h2 class="font-semibold mb-3">Informacje</h2>
+        <p><span class="font-semibold">Rodzaj:</span> {{ order.get_order_type_display }}</p>
+        <p><span class="font-semibold">Data:</span> {{ order.date }} {{ order.time|default:"" }}</p>
+        <p><span class="font-semibold">Status:</span> {{ order.get_status_display }}</p>
+        <p><span class="font-semibold">Pracownik:</span> {{ order.assigned_to|default:"(nieprzypisane)" }}</p>
+    </section>
+
+    <section class="bg-slate-950 border border-slate-800 rounded-xl p-4">
+        <h2 class="font-semibold mb-3">Klient</h2>
+        <p>{{ order.client.first_name }} {{ order.client.last_name }}</p>
+        <p>{{ order.client.address }}</p>
+        <p>{{ order.client.city }}</p>
+        <p>{{ order.client.phone }}</p>
+    </section>
+
+</div>
+
+<section class="bg-slate-950 border border-slate-800 rounded-xl p-4 mt-6">
+    <h2 class="font-semibold mb-3">Opis zlecenia</h2>
+    <p class="whitespace-pre-line text-sm text-slate-200">
+        {{ order.description }}
+    </p>
+</section>
+
+<a href="{% url 'orders_list' %}" class="inline-block mt-6 text-sm text-slate-400 hover:text-slate-200">
+    ← Powrót do listy zleceń
+</a>
+
+{% endblock %}

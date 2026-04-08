@@ -1,0 +1,204 @@
+{% extends "core/base.html" %}
+{% block title %}Zlecenia{% endblock %}
+
+{% block content %}
+<div class="flex flex-col gap-6">
+
+    <!-- HEADER -->
+    <div class="flex flex-col md:flex-row md:items-end md:justify-between gap-4">
+        <div>
+            <h1 class="text-2xl sm:text-3xl font-bold">Zlecenia</h1>
+            <p class="text-slate-400 text-sm mt-1">Kliknij zlecenie, aby zobaczyć szczegóły.</p>
+        </div>
+
+        <a href="{% url 'order_add' %}"
+           class="px-4 py-2 bg-blue-600 hover:bg-blue-500 rounded-lg text-white w-full md:w-auto text-center">
+            + Dodaj zlecenie
+        </a>
+    </div>
+
+    <!-- TOOLBAR: FILTER -->
+    <div class="bg-slate-950 border border-slate-800 rounded-2xl p-4 md:p-5">
+        <form method="get" class="flex flex-col sm:flex-row sm:items-center gap-3">
+            <label for="status" class="text-slate-300 text-sm whitespace-nowrap">Filtr statusu:</label>
+
+            <select id="status" name="status"
+                    class="w-full sm:w-64 p-2.5 bg-slate-900 border border-slate-700 rounded-lg text-slate-200"
+                    onchange="this.form.submit()">
+                <option value="all" {% if selected_status == "all" %}selected{% endif %}>Wszystkie</option>
+                <option value="new" {% if selected_status == "new" %}selected{% endif %}>Nowe</option>
+                <option value="in_progress" {% if selected_status == "in_progress" %}selected{% endif %}>W trakcie</option>
+                <option value="done" {% if selected_status == "done" %}selected{% endif %}>Zakończone</option>
+                <option value="cancelled" {% if selected_status == "cancelled" %}selected{% endif %}>Anulowane</option>
+            </select>
+
+            <div class="flex gap-2 sm:ml-auto">
+                <a href="{% url 'orders_list' %}"
+                   class="px-4 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 transition text-center">
+                    Wyczyść
+                </a>
+            </div>
+        </form>
+    </div>
+
+    <!-- MOBILE: KARTY -->
+    <div class="md:hidden space-y-3">
+        {% for order in orders %}
+            <div class="bg-slate-950 border border-slate-800 rounded-2xl p-4 hover:bg-slate-900 transition cursor-pointer"
+                 onclick="window.location.href='{% url 'order_detail' order.pk %}'">
+
+                <div class="flex items-start justify-between gap-3">
+                    <div class="min-w-0">
+                        <p class="font-semibold text-lg truncate">
+                            {{ order.client.first_name }} {{ order.client.last_name }}
+                        </p>
+
+                        <div class="mt-1 flex flex-wrap gap-x-3 gap-y-1 text-sm text-slate-400">
+                            <span>{{ order.get_order_type_display }}</span>
+                            <span>{{ order.date }}</span>
+                            <span>{{ order.time|default:"—" }}</span>
+                        </div>
+
+                        <div class="mt-2 flex flex-wrap items-center gap-3 text-sm">
+                            <span class="
+                                {% if order.status == 'done' %}text-green-400
+                                {% elif order.status == 'in_progress' %}text-yellow-400
+                                {% elif order.status == 'cancelled' %}text-red-400
+                                {% else %}text-slate-300{% endif %}
+                            ">
+                                {{ order.get_status_display }}
+                            </span>
+
+                            <span class="text-slate-400">•</span>
+
+                            {% if order.is_paid %}
+                                <span class="text-green-400 font-medium">Opłacone: Tak</span>
+                            {% else %}
+                                <span class="text-red-400 font-medium">Opłacone: Nie</span>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <div class="text-blue-400 text-xl leading-none">›</div>
+                </div>
+
+                <div class="mt-4 flex items-center justify-end gap-3">
+                    <a href="{% url 'order_edit' order.pk %}"
+                       class="text-blue-400 hover:text-blue-300"
+                       onclick="event.stopPropagation()">
+                        Edytuj
+                    </a>
+
+                    <form method="post" action="{% url 'order_delete' order.pk %}"
+                          onclick="event.stopPropagation()">
+                        {% csrf_token %}
+                        <button type="submit"
+                                class="text-red-400 hover:text-red-300"
+                                onclick="return confirm('Na pewno usunąć to zlecenie?');">
+                            Usuń
+                        </button>
+                    </form>
+                </div>
+
+            </div>
+        {% empty %}
+            <div class="bg-slate-950 border border-slate-800 rounded-2xl p-6 text-center text-slate-500">
+                Brak zleceń do wyświetlenia.
+            </div>
+        {% endfor %}
+    </div>
+
+    <!-- DESKTOP/TABLET: TABELA -->
+    <div class="hidden md:block bg-slate-950 border border-slate-800 rounded-2xl overflow-hidden">
+        <table class="w-full text-left text-sm">
+            <thead class="bg-slate-900 text-slate-300">
+                <tr>
+                    <th class="p-3">Klient</th>
+                    <th class="p-3">Rodzaj</th>
+                    <th class="p-3">Data</th>
+                    <th class="p-3">Godzina</th>
+                    <th class="p-3">Status</th>
+                    <th class="p-3">Opłacone</th>
+                    {% if request.user.is_superuser %}
+                        <th class="p-3">Pracownik</th>
+                    {% endif %}
+                    <th class="p-3 text-right">Akcje</th>
+                </tr>
+            </thead>
+
+            <tbody>
+            {% for order in orders %}
+                <tr class="border-t border-slate-800 hover:bg-slate-800 transition cursor-pointer"
+                    onclick="window.location.href='{% url 'order_detail' order.pk %}'">
+
+                    <td class="p-3 font-medium">
+                        {{ order.client.first_name }} {{ order.client.last_name }}
+                    </td>
+
+                    <td class="p-3">
+                        {{ order.get_order_type_display }}
+                    </td>
+
+                    <td class="p-3">
+                        {{ order.date }}
+                    </td>
+
+                    <td class="p-3">
+                        {{ order.time|default:"—" }}
+                    </td>
+
+                    <td class="p-3">
+                        <span class="
+                            {% if order.status == 'done' %}text-green-400
+                            {% elif order.status == 'in_progress' %}text-yellow-400
+                            {% elif order.status == 'cancelled' %}text-red-400
+                            {% else %}text-slate-300{% endif %}
+                        ">
+                            {{ order.get_status_display }}
+                        </span>
+                    </td>
+
+                    <td class="p-3">
+                        {% if order.is_paid %}
+                            <span class="text-green-400 font-medium">Tak</span>
+                        {% else %}
+                            <span class="text-red-400 font-medium">Nie</span>
+                        {% endif %}
+                    </td>
+                    {% if request.user.is_superuser %}
+                        <td class="p-3 text-slate-300">
+                            {{ order.assigned_to.username|default:"—" }}
+                        </td>
+                    {% endif %}
+                    <td class="p-3 text-right whitespace-nowrap">
+                        <a href="{% url 'order_edit' order.pk %}"
+                           class="text-blue-400 hover:text-blue-300 mr-3"
+                           onclick="event.stopPropagation()">
+                            Edytuj
+                        </a>
+
+                        <form method="post" action="{% url 'order_delete' order.pk %}" class="inline"
+                              onclick="event.stopPropagation()">
+                            {% csrf_token %}
+                            <button type="submit"
+                                    class="text-red-400 hover:text-red-300"
+                                    onclick="return confirm('Na pewno usunąć to zlecenie?');">
+                                Usuń
+                            </button>
+                        </form>
+                    </td>
+                </tr>
+
+            {% empty %}
+                <tr>
+                    <td class="p-6 text-center text-slate-500" colspan="7">
+                        Brak zleceń do wyświetlenia.
+                    </td>
+                </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+</div>
+{% endblock %}

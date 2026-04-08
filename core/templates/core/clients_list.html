@@ -1,0 +1,217 @@
+{% extends "core/base.html" %}
+{% block title %}Klienci{% endblock %}
+
+{% block content %}
+<div class="flex flex-col gap-6">
+
+    <div class="flex flex-col md:flex-row md:items-end md:justify-between gap-4">
+        <div>
+            <h1 class="text-2xl sm:text-3xl font-bold">Klienci</h1>
+            <p class="text-slate-400 text-sm mt-1">Wyszukuj i sortuj po danych kontaktowych i adresie.</p>
+        </div>
+
+        <a href="{% url 'client_add' %}"
+           class="px-4 py-2 bg-blue-600 hover:bg-blue-500 rounded-lg text-white w-full md:w-auto text-center">
+            + Dodaj klienta
+        </a>
+    </div>
+
+    <div class="bg-slate-950 border border-slate-800 rounded-2xl p-4 md:p-5">
+        <form method="get" class="flex flex-col md:flex-row gap-3 md:items-center">
+            <div class="flex-1">
+                <input
+                    type="text"
+                    name="q"
+                    value="{{ q }}"
+                    placeholder="Szukaj: imię, nazwisko, telefon, miasto, ulica…"
+                    class="w-full p-2.5 rounded-lg bg-white text-black border border-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+            </div>
+
+            <input type="hidden" name="sort" value="{{ sort }}">
+            <input type="hidden" name="dir" value="{{ dir }}">
+
+            <div class="flex gap-2 w-full md:w-auto">
+                <button class="px-4 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 transition w-1/2 md:w-auto">
+                    Szukaj
+                </button>
+
+                <a href="{% url 'clients_list' %}"
+                   class="px-4 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 transition text-center w-1/2 md:w-auto">
+                    Wyczyść
+                </a>
+            </div>
+        </form>
+    </div>
+
+    <div class="md:hidden space-y-3">
+        {% for client in clients %}
+            <div class="bg-slate-950 border border-slate-800 rounded-2xl p-4 hover:bg-slate-900 transition cursor-pointer"
+                 onclick="window.location.href='{% url 'client_detail' client.pk %}'">
+
+                <div class="flex items-start justify-between gap-3">
+                    <div class="min-w-0">
+                        <p class="font-semibold text-lg truncate">
+                            {{ client.first_name }} {{ client.last_name }}
+                        </p>
+                        <p class="text-slate-400 text-sm mt-1">
+                            {{ client.phone|default:"—" }}
+                        </p>
+                        <p class="text-slate-400 text-sm mt-1 truncate">
+                            {{ client.address|default:"—" }}, {{ client.city|default:"—" }}
+                        </p>
+                    </div>
+
+                    <div class="text-blue-400 text-xl leading-none">›</div>
+                </div>
+
+                <div class="mt-4 flex items-center justify-end gap-3">
+                    <a href="{% url 'client_edit' client.pk %}"
+                       class="text-blue-400 hover:text-blue-300"
+                       onclick="event.stopPropagation()">
+                        Edytuj
+                    </a>
+
+                    <form method="post" action="{% url 'client_delete' client.pk %}"
+                          onclick="event.stopPropagation()">
+                        {% csrf_token %}
+                        <button type="submit"
+                                class="text-red-400 hover:text-red-300"
+                                onclick="return confirm('Na pewno usunąć klienta? Usuniesz też jego zlecenia.');">
+                            Usuń
+                        </button>
+                    </form>
+                </div>
+
+            </div>
+        {% empty %}
+            <div class="bg-slate-950 border border-slate-800 rounded-2xl p-6 text-center text-slate-500">
+                Brak klientów.
+            </div>
+        {% endfor %}
+    </div>
+
+    <div class="hidden md:block bg-slate-950 border border-slate-800 rounded-2xl overflow-hidden">
+        <table class="w-full text-left">
+            <thead class="bg-slate-900 text-slate-300 text-sm">
+                <tr>
+                    <th class="p-3">
+                        <a class="hover:text-white"
+                           href="?q={{ q|urlencode }}&sort=first_name&dir={% if sort == 'first_name' and dir == 'asc' %}desc{% else %}asc{% endif %}">
+                            Imię
+                            {% if sort == "first_name" %}
+                            {% if dir == "asc" %}↑{% else %}↓{% endif %}
+                            {% endif %}
+                        </a>
+                    </th>
+
+                    <th class="p-3">
+                        <a class="hover:text-white"
+                           href="?q={{ q|urlencode }}&sort=last_name&dir={% if sort == 'last_name' and dir == 'asc' %}desc{% else %}asc{% endif %}">
+                            Nazwisko
+                            {% if sort == "last_name" %}
+                            {% if dir == "asc" %}↑{% else %}↓{% endif %}
+                            {% endif %}
+                        </a>
+                    </th>
+
+                    <th class="p-3">
+                        <a class="hover:text-white"
+                           href="?q={{ q|urlencode }}&sort=phone&dir={% if sort == 'phone' and dir == 'asc' %}desc{% else %}asc{% endif %}">
+                            Telefon
+                            {% if sort == "phone" %}
+                            {% if dir == "asc" %}↑{% else %}↓{% endif %}
+                            {% endif %}
+                        </a>
+                    </th>
+
+                    <th class="p-3">
+                        <a class="hover:text-white"
+                           href="?q={{ q|urlencode }}&sort=city&dir={% if sort == 'city' and dir == 'asc' %}desc{% else %}asc{% endif %}">
+                            Miasto
+                            {% if sort == "city" %}
+                            {% if dir == "asc" %}↑{% else %}↓{% endif %}
+                            {% endif %}
+                        </a>
+                    </th>
+
+                    <th class="p-3">
+                        <a class="hover:text-white"
+                           href="?q={{ q|urlencode }}&sort=address&dir={% if sort == 'address' and dir == 'asc' %}desc{% else %}asc{% endif %}">
+                            Adres
+                            {% if sort == "address" %}
+                            {% if dir == "asc" %}↑{% else %}↓{% endif %}
+                            {% endif %}
+                        </a>
+                    </th>
+
+                    <th class="p-3 text-right">Akcje</th>
+                </tr>
+            </thead>
+
+            <tbody class="text-sm">
+            {% for client in clients %}
+                <tr class="border-t border-slate-800 hover:bg-slate-800 transition cursor-pointer"
+                    onclick="window.location.href='{% url 'client_detail' client.pk %}'">
+
+                    <td class="p-3 font-medium">{{ client.first_name }}</td>
+                    <td class="p-3">{{ client.last_name }}</td>
+                    <td class="p-3">{{ client.phone|default:"—" }}</td>
+                    <td class="p-3">{{ client.city|default:"—" }}</td>
+                    <td class="p-3">{{ client.address|default:"—" }}</td>
+
+                    <td class="p-3 text-right whitespace-nowrap">
+                        <a href="{% url 'client_edit' client.pk %}"
+                           class="text-blue-400 hover:text-blue-300 mr-3"
+                           onclick="event.stopPropagation()">
+                            Edytuj
+                        </a>
+
+                        <form method="post" action="{% url 'client_delete' client.pk %}" class="inline"
+                              onclick="event.stopPropagation()">
+                            {% csrf_token %}
+                            <button type="submit"
+                                    class="text-red-400 hover:text-red-300"
+                                    onclick="return confirm('Na pewno usunąć klienta? Usuniesz też jego zlecenia.');">
+                                Usuń
+                            </button>
+                        </form>
+                    </td>
+                </tr>
+            {% empty %}
+                <tr>
+                    <td class="p-6 text-center text-slate-500" colspan="6">
+                        Brak klientów.
+                    </td>
+                </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    {% if is_paginated %}
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 text-sm text-slate-300">
+        <div>
+            Strona {{ page_obj.number }} z {{ page_obj.paginator.num_pages }}
+        </div>
+
+        <div class="flex gap-2">
+            {% if page_obj.has_previous %}
+                <a class="px-3 py-2 rounded bg-slate-800 hover:bg-slate-700"
+                   href="?q={{ q|urlencode }}&sort={{ sort }}&dir={{ dir }}&page={{ page_obj.previous_page_number }}">
+                    ← Poprzednia
+                </a>
+            {% endif %}
+
+            {% if page_obj.has_next %}
+                <a class="px-3 py-2 rounded bg-slate-800 hover:bg-slate-700"
+                   href="?q={{ q|urlencode }}&sort={{ sort }}&dir={{ dir }}&page={{ page_obj.next_page_number }}">
+                    Następna →
+                </a>
+            {% endif %}
+        </div>
+    </div>
+    {% endif %}
+
+</div>
+{% endblock %}

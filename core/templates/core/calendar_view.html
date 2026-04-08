@@ -1,0 +1,181 @@
+{% extends "core/base.html" %}
+{% block title %}Kalendarz{% endblock %}
+
+{% block extra_head %}
+  <link href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/index.min.css" rel="stylesheet">
+
+  <style>
+    .fc {
+      --fc-border-color: rgb(51, 65, 85);
+      --fc-page-bg-color: transparent;
+      --fc-neutral-bg-color: rgb(30, 41, 59);
+      --fc-neutral-text-color: rgb(148, 163, 184);
+
+      --fc-button-bg-color: rgb(30, 41, 59);
+      --fc-button-border-color: rgb(51, 65, 85);
+      --fc-button-text-color: rgb(226, 232, 240);
+      --fc-button-hover-bg-color: rgb(51, 65, 85);
+      --fc-button-active-bg-color: rgb(59, 130, 246);
+
+      --fc-today-bg-color: rgba(59, 130, 246, 0.12);
+      --fc-event-bg-color: rgb(59, 130, 246);
+      --fc-event-border-color: transparent;
+    }
+
+    .fc .fc-scrollgrid {
+      border-radius: 16px;
+      overflow: hidden;
+    }
+
+    .fc .fc-toolbar {
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .fc .fc-toolbar-title {
+      color: white;
+      font-size: 1.2rem;
+      font-weight: 700;
+      letter-spacing: .2px;
+    }
+
+    @media (min-width: 768px) {
+      .fc .fc-toolbar-title { font-size: 1.35rem; }
+    }
+
+    .fc .fc-button {
+      border-radius: 10px !important;
+      padding: 8px 12px !important;
+    }
+
+    .fc .fc-col-header-cell-cushion{
+      display: block;
+      text-align: center;
+      font-size: 0.78rem;
+      line-height: 1.05rem;
+      padding: 8px 0;
+      white-space: nowrap;
+    }
+
+    .fc .fc-event {
+      border-radius: 10px;
+      padding: 4px 8px;
+      box-shadow: 0 0 10px rgba(59, 130, 246, 0.35);
+      font-weight: 600;
+      font-size: 0.85rem;
+      cursor: pointer;
+    }
+
+    .fc .fc-event:hover {
+      filter: brightness(1.08);
+      transform: translateY(-1px);
+      transition: 0.12s ease;
+    }
+
+    /* ładniejsze tło i odstępy na mobile */
+    .fc .fc-view-harness {
+      min-height: 520px;
+    }
+
+    @media (min-width: 768px) {
+      .fc .fc-view-harness { min-height: 720px; }
+    }
+  </style>
+{% endblock %}
+
+{% block content %}
+  <div class="flex flex-col gap-6">
+
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+      <div>
+        <h1 class="text-2xl sm:text-3xl font-bold">Kalendarz zleceń</h1>
+        <p class="text-slate-400 text-sm mt-1">
+          Przewijaj tygodnie/miesiące i klikaj zlecenia, aby zobaczyć szczegóły.
+        </p>
+      </div>
+
+      <div class="flex gap-2">
+        <a href="{% url 'order_add' %}"
+           class="px-4 py-2 bg-blue-600 hover:bg-blue-500 rounded-lg text-white w-full sm:w-auto text-center">
+          + Dodaj zlecenie
+        </a>
+      </div>
+    </div>
+
+    <div class="bg-slate-950 border border-slate-800 rounded-2xl p-3 sm:p-4 md:p-6">
+      <div id="calendar"></div>
+    </div>
+
+  </div>
+{% endblock %}
+
+{% block extra_js %}
+  <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/index.global.min.js"></script>
+
+  <script>
+    document.addEventListener("DOMContentLoaded", function () {
+
+      if (!window.FullCalendar) {
+        alert("FullCalendar nie załadował się (CDN). Spróbuj CTRL+F5 lub sprawdź blokady przeglądarki.");
+        return;
+      }
+
+      const calendarEl = document.getElementById("calendar");
+      const events = {{ calendar_events|safe }};
+
+      function getInitialView() {
+        return window.innerWidth < 640 ? "timeGridDay" : "timeGridWeek";
+      }
+
+      const calendar = new FullCalendar.Calendar(calendarEl, {
+        initialView: getInitialView(),
+        height: "auto",
+        expandRows: true,
+        nowIndicator: true,
+        locale: "pl",
+        firstDay: 1,
+        allDaySlot: false,
+
+        slotMinTime: "06:00:00",
+        slotMaxTime: "20:00:00",
+
+        headerToolbar: {
+          left: "prev,next today",
+          center: "title",
+          right: "timeGridDay,timeGridWeek,dayGridMonth,listWeek"
+        },
+
+        buttonText: {
+          today: "Dziś",
+          day: "Dzień",
+          week: "Tydzień",
+          month: "Miesiąc",
+          list: "Lista"
+        },
+
+        dayHeaderFormat: { weekday: "short", day: "2-digit", month: "2-digit" },
+
+        events: events,
+
+        eventClick: function(info) {
+          info.jsEvent.preventDefault();
+          if (info.event.url) window.location.href = info.event.url;
+        },
+
+        eventTimeFormat: { hour: "2-digit", minute: "2-digit", hour12: false },
+
+        dayMaxEvents: true,
+        stickyHeaderDates: true,
+
+        windowResize: function() {
+          const desired = getInitialView();
+          if (calendar.view.type !== desired && (calendar.view.type === "timeGridDay" || calendar.view.type === "timeGridWeek")) {
+            calendar.changeView(desired);
+          }
+        },
+      });
+
+      calendar.render();
+    });
+  </script>
+{% endblock %}
